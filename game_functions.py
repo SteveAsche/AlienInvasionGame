@@ -3,6 +3,7 @@ import sys
 import pygame
 from bullet import Bullet 
 from alien import Alien 
+from time import sleep
 
 def check_keydown_events(event, ai_settings, screen, ship, bullets):
 	"""Respond to key presses"""
@@ -20,7 +21,23 @@ def check_keydown_events(event, ai_settings, screen, ship, bullets):
 	elif event.key == pygame.K_q:
 		sys.exit()
 
+def ship_hit(ai_settings, stats, screen, ship, aliens, bullets):
+	"""Respond to ship being hit"""
+	# decrement ships left
+	if stats.ships_left > 0:
+		stats.ships_left -= 1
+		#Empth the list of aliens
+		aliens.empty()
+		bullets.empty()
+		#Create a new fleet
+		create_fleet(ai_settings, screen, ship, aliens)
+		ship.center_ship()
 
+		#Pause
+		sleep(0.5)
+
+	else:
+		stats.game_active = False
 
 def check_keyup_events(event, ship):
 	"""Respond to key releases"""
@@ -62,7 +79,12 @@ def update_bullets(ai_settings, screen, ship, aliens, bullets):
 	for bullet in bullets.copy():
 		if bullet.rect.bottom <= 0:
 			bullets.remove(bullet)
-	# Check for any bullets tha have hit aliens
+
+	check_bullet_alien_collisions(ai_settings, screen, ship, aliens, bullets)
+
+def check_bullet_alien_collisions(ai_settings, screen, ship, aliens, bullets):
+	"""Respond to alien - bullet collisions"""
+
 	# If so, get rid of the bullet and the alien
 	collisions = pygame.sprite.groupcollide(bullets, aliens, True, True)
 	if len(aliens) == 0:
@@ -123,10 +145,31 @@ def change_fleet_direction(ai_settings, aliens):
 		alien.rect.y += ai_settings.fleet_drop_speed
 	ai_settings.fleet_direction *= -1
 
-def update_aliens(ai_settings, aliens):
+def check_aliens_bottom(ai_settings, stats, screen, ship, aliens, bullets):
+	"""Check if any alines have reached the bottom of the screen"""
+	screen_rect = screen.get_rect()
+	for alien in aliens.sprites():
+		if alien.rect.bottom >= screen_rect.bottom:
+			#Treat this as the same as if the ship was hit
+			ship_hit(ai_settings, stats, screen, ship, aliens, bullets)
+			break
+
+
+
+
+
+
+def update_aliens(ai_settings, stats, screen, ship, aliens, bullets):
 	"""check if the fleet is at an edge then update position"""
 	check_fleet_edges(ai_settings, aliens)
 	aliens.update()
+	# Look for alien ship collisions
+	if pygame.sprite.spritecollideany(ship, aliens):
+		ship_hit(ai_settings, stats, screen, ship, aliens, bullets)
+
+	#look for aliens at bottom
+	check_aliens_bottom(ai_settings, stats, screen, ship, aliens, bullets)
+
 
 
 def update_screen(ai_settings, screen, ship, aliens, bullets):
