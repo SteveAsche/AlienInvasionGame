@@ -1,4 +1,3 @@
-"""This defines the alien hoarde"""
 import pygame
 from pygame.sprite import Sprite
 
